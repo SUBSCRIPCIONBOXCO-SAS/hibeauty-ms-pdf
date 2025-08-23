@@ -60,14 +60,14 @@ export class SalesService {
         .populate({
           path: 'products.id',
           model: 'Product',
-          select: '_id name price discount brand category ref tone color',
+          select: '_id name price discount brand category ref tone color costProduct',
           populate: [
             { path: 'brand', model: 'Brand', select: '_id name' },
             { path: 'category', model: 'Category', select: '_id name' },
             {
               path: 'ref',
               model: 'Product',
-              select: '_id name price discount brand category tone color',
+              select: '_id name price discount brand category tone color costProduct',
               populate: [
                 { path: 'brand', model: 'Brand', select: '_id name' },
                 { path: 'category', model: 'Category', select: '_id name' },
@@ -89,14 +89,14 @@ export class SalesService {
         .populate({
           path: 'store.id',
           model: 'Product',
-          select: '_id name price discount brand category ref tone color',
+          select: '_id name price discount brand category ref tone color costProduct',
           populate: [
             { path: 'brand', model: 'Brand', select: '_id name' },
             { path: 'category', model: 'Category', select: '_id name' },
             {
               path: 'ref',
               model: 'Product',
-              select: '_id name price discount   brand category tone color',
+              select: '_id name price discount brand category tone color costProduct',
               populate: [
                 { path: 'brand', model: 'Brand', select: '_id name' },
                 { path: 'category', model: 'Category', select: '_id name' },
@@ -181,6 +181,9 @@ export class SalesService {
             const main = product.ref || product;
             const precioReal = Number(main.price) || 0;
             const cantidad = Number(prod.quantity) || 0;
+            
+            // ✅ OBTENER COSTO DEL PRODUCTO
+            const costoProducto = Number(main.costProduct) || 0;
 
             // Precio con descuento individual (si existe en la línea) o derivado del discount del producto
             const descuentoProductoRaw = Number(main.discount) || 0;
@@ -234,6 +237,12 @@ export class SalesService {
             const totalProd = precioFinalVendido * cantidad;
             const totalProdRedondeado = Math.round(totalProd);
             const precioVendidoRedondeado = Math.round(precioFinalVendido);
+            
+            // ✅ CALCULAR GANANCIA POR UNIDAD Y TOTAL
+            const gananciaPorUnidad = precioVendidoRedondeado - costoProducto;
+            const gananciaTotal = gananciaPorUnidad * cantidad;
+            const margenGanancia = costoProducto > 0 ? 
+              ((gananciaPorUnidad / costoProducto) * 100) : 0;
 
             // Preparar línea (se insertará luego de reconciliar)
             const linea: any = {
@@ -243,6 +252,10 @@ export class SalesService {
               precioReal,
               precioVendido: precioVendidoRedondeado,
               totalVenta: totalProdRedondeado,
+              costoProducto, // ✅ NUEVO CAMPO
+              gananciaPorUnidad, // ✅ NUEVO CAMPO
+              gananciaTotal, // ✅ NUEVO CAMPO
+              margenGanancia: Math.round(margenGanancia * 100) / 100, // ✅ NUEVO CAMPO
               tono: (
                 product.color?.name ||
                 product.tone?.name ||
@@ -298,8 +311,20 @@ export class SalesService {
             const lineaAjuste = lineasCompra[idx];
             const nuevoTotal = Math.max(0, lineaAjuste.totalVenta + diferencia);
             const qty = Number(lineaAjuste.cantidadVendida) || 1;
+            const nuevoPrecioVendido = Math.round(nuevoTotal / qty);
+            
+            // ✅ RECALCULAR GANANCIA DESPUÉS DEL AJUSTE
+            const nuevaGananciaPorUnidad = nuevoPrecioVendido - lineaAjuste.costoProducto;
+            const nuevaGananciaTotal = nuevaGananciaPorUnidad * qty;
+            const nuevoMargenGanancia = lineaAjuste.costoProducto > 0 ? 
+              ((nuevaGananciaPorUnidad / lineaAjuste.costoProducto) * 100) : 0;
+            
             lineaAjuste.totalVenta = nuevoTotal;
-            lineaAjuste.precioVendido = Math.round(nuevoTotal / qty);
+            lineaAjuste.precioVendido = nuevoPrecioVendido;
+            lineaAjuste.gananciaPorUnidad = nuevaGananciaPorUnidad;
+            lineaAjuste.gananciaTotal = nuevaGananciaTotal;
+            lineaAjuste.margenGanancia = Math.round(nuevoMargenGanancia * 100) / 100;
+            
             lineasCompra[idx] = lineaAjuste;
           }
 
@@ -314,12 +339,19 @@ export class SalesService {
             if (!product) return;
             const main = product.ref || product;
             const precioReal = Number(main.price) || 0;
+            const costoProducto = Number(main.costProduct) || 0; // ✅ NUEVO CAMPO
             const priceLinea =
               Number(prod.price) > 0 ? Number(prod.price) : null;
             const precioVendido = priceLinea === null ? precioReal : priceLinea; // sin descuentos derivados
             const cantidad = Number(prod.quantity) || 0;
             const totalProd = precioVendido * cantidad;
             totalCompra += totalProd;
+
+            // ✅ CALCULAR GANANCIA
+            const gananciaPorUnidad = precioVendido - costoProducto;
+            const gananciaTotal = gananciaPorUnidad * cantidad;
+            const margenGanancia = costoProducto > 0 ? 
+              ((gananciaPorUnidad / costoProducto) * 100) : 0;
 
             // Preparar línea (se insertará luego de reconciliar)
             const totalProdRedondeado = Math.round(totalProd);
@@ -331,6 +363,10 @@ export class SalesService {
               precioReal,
               precioVendido: precioVendidoRedondeado,
               totalVenta: totalProdRedondeado,
+              costoProducto, // ✅ NUEVO CAMPO
+              gananciaPorUnidad: Math.round(gananciaPorUnidad), // ✅ NUEVO CAMPO
+              gananciaTotal: Math.round(gananciaTotal), // ✅ NUEVO CAMPO
+              margenGanancia: Math.round(margenGanancia * 100) / 100, // ✅ NUEVO CAMPO
               tono: (
                 product.color?.name ||
                 product.tone?.name ||
@@ -389,8 +425,20 @@ export class SalesService {
               lineaAjuste2.totalVenta + (objetivo2 - sumaRedondeada2),
             );
             const qty2 = Number(lineaAjuste2.cantidadVendida) || 1;
+            const nuevoPrecioVendido2 = Math.round(nuevoTotal2 / qty2);
+            
+            // ✅ RECALCULAR GANANCIA DESPUÉS DEL AJUSTE
+            const nuevaGananciaPorUnidad2 = nuevoPrecioVendido2 - lineaAjuste2.costoProducto;
+            const nuevaGananciaTotal2 = nuevaGananciaPorUnidad2 * qty2;
+            const nuevoMargenGanancia2 = lineaAjuste2.costoProducto > 0 ? 
+              ((nuevaGananciaPorUnidad2 / lineaAjuste2.costoProducto) * 100) : 0;
+            
             lineaAjuste2.totalVenta = nuevoTotal2;
-            lineaAjuste2.precioVendido = Math.round(nuevoTotal2 / qty2);
+            lineaAjuste2.precioVendido = nuevoPrecioVendido2;
+            lineaAjuste2.gananciaPorUnidad = nuevaGananciaPorUnidad2;
+            lineaAjuste2.gananciaTotal = nuevaGananciaTotal2;
+            lineaAjuste2.margenGanancia = Math.round(nuevoMargenGanancia2 * 100) / 100;
+            
             lineasCompraSinTotal[idx2] = lineaAjuste2;
           }
           ventasDetalladas.push(...lineasCompraSinTotal);
@@ -423,6 +471,7 @@ export class SalesService {
           if (!product) return;
           const main = product.ref || product;
           const precioReal = Number(main.price) || 0;
+          const costoProducto = Number(main.costProduct) || 0; // ✅ NUEVO CAMPO
           const cantidad = Number(prod.quantity) || 0;
 
           // Precio con descuento individual (solo si el precio en la línea es menor al precio real)
@@ -467,6 +516,13 @@ export class SalesService {
 
           const totalProd = precioFinalVendido * cantidad;
           const totalProdRedondeado = Math.round(totalProd);
+          const precioVendidoFinal = Math.round(precioFinalVendido);
+          
+          // ✅ CALCULAR GANANCIA
+          const gananciaPorUnidad = precioVendidoFinal - costoProducto;
+          const gananciaTotal = gananciaPorUnidad * cantidad;
+          const margenGanancia = costoProducto > 0 ? 
+            ((gananciaPorUnidad / costoProducto) * 100) : 0;
 
           // ✅ AGREGAR AL REPORTE DETALLADO (con auditoría opcional)
           const lineaPago: any = {
@@ -474,8 +530,12 @@ export class SalesService {
             marca: main.brand?.name?.trim() || 'Sin marca',
             cantidadVendida: cantidad,
             precioReal,
-            precioVendido: Math.round(precioFinalVendido),
+            precioVendido: precioVendidoFinal,
             totalVenta: totalProdRedondeado,
+            costoProducto, // ✅ NUEVO CAMPO
+            gananciaPorUnidad, // ✅ NUEVO CAMPO
+            gananciaTotal, // ✅ NUEVO CAMPO
+            margenGanancia: Math.round(margenGanancia * 100) / 100, // ✅ NUEVO CAMPO
             tono: (
               product.color?.name ||
               product.tone?.name ||
@@ -532,8 +592,20 @@ export class SalesService {
           const linea = lineasPago[idx];
           const nuevoTotal = Math.max(0, linea.totalVenta + diferenciaPago);
           const qty = Number(linea.cantidadVendida) || 1;
+          const nuevoPrecioVendido = Math.round(nuevoTotal / qty);
+          
+          // ✅ RECALCULAR GANANCIA DESPUÉS DEL AJUSTE
+          const nuevaGananciaPorUnidad = nuevoPrecioVendido - linea.costoProducto;
+          const nuevaGananciaTotal = nuevaGananciaPorUnidad * qty;
+          const nuevoMargenGanancia = linea.costoProducto > 0 ? 
+            ((nuevaGananciaPorUnidad / linea.costoProducto) * 100) : 0;
+          
           linea.totalVenta = nuevoTotal;
-          linea.precioVendido = Math.round(nuevoTotal / qty);
+          linea.precioVendido = nuevoPrecioVendido;
+          linea.gananciaPorUnidad = nuevaGananciaPorUnidad;
+          linea.gananciaTotal = nuevaGananciaTotal;
+          linea.margenGanancia = Math.round(nuevoMargenGanancia * 100) / 100;
+          
           lineasPago[idx] = linea;
         }
         ventasDetalladas.push(...lineasPago);
@@ -572,6 +644,20 @@ export class SalesService {
 
       // Este es el total que debe coincidir con las agregaciones compartidas
       const totalFacturadoDetallado = totalComprasAgregado + totalPagosAgregado;
+
+      // ✅ CALCULAR TOTALES DE GANANCIA
+      const totalGanancia = ventasDetalladas.reduce((sum, venta) => {
+        return sum + (Number(venta.gananciaTotal) || 0);
+      }, 0);
+
+      const totalCosto = ventasDetalladas.reduce((sum, venta) => {
+        const costo = Number(venta.costoProducto) || 0;
+        const cantidad = Number(venta.cantidadVendida) || 0;
+        return sum + (costo * cantidad);
+      }, 0);
+
+      const margenPromedioGlobal = totalCosto > 0 ? 
+        ((totalGanancia / totalCosto) * 100) : 0;
 
       // AUDITORÍA: comparar suma por transacción vs objetivo
       try {
@@ -669,6 +755,9 @@ export class SalesService {
         ventasDetalladas: ventasOrdenadas,
         totalFacturado: Math.round(totalFacturadoDetallado),
         totalFacturadoSistema: Math.round(totalFacturadoDetallado),
+        totalGanancia: Math.round(totalGanancia), // ✅ NUEVO CAMPO
+        totalCosto: Math.round(totalCosto), // ✅ NUEVO CAMPO
+        margenPromedioGlobal: Math.round(margenPromedioGlobal * 100) / 100, // ✅ NUEVO CAMPO
         cantidadTransacciones: purchases.length + payments.length,
         cantidadProductosVendidos: ventasDetalladas.length,
         fechaInicio: dateInit,
@@ -690,6 +779,9 @@ export class SalesService {
       ventasDetalladas = [],
       totalFacturado = 0,
       totalFacturadoSistema = 0,
+      totalGanancia = 0, // ✅ NUEVO CAMPO
+      totalCosto = 0, // ✅ NUEVO CAMPO
+      margenPromedioGlobal = 0, // ✅ NUEVO CAMPO
       cantidadTransacciones = 0,
       cantidadProductosVendidos = 0,
       fechaInicio = '',
@@ -725,29 +817,35 @@ export class SalesService {
         <head>
           <meta charset="utf-8" />
           <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 11px; }
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 10px; }
             .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 12px; }
-            .summary { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin: 15px 0; }
-            .card { background: #f8f9fa; padding: 10px 12px; border-radius: 6px; min-width: 180px; }
-            .card .label { color: #7f8c8d; font-size: 10px; }
-            .card .value { color: #2c3e50; font-weight: bold; font-size: 14px; }
-            table { width: 100%; border-collapse: collapse; font-size: 10px; }
-            th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
-            th { background: #f0f3f6; text-transform: uppercase; font-size: 9px; }
+            .summary { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin: 15px 0; }
+            .card { background: #f8f9fa; padding: 8px 10px; border-radius: 6px; min-width: 140px; }
+            .card .label { color: #7f8c8d; font-size: 9px; }
+            .card .value { color: #2c3e50; font-weight: bold; font-size: 12px; }
+            .profit-card { background: #e8f5e8; }
+            .profit-card .value { color: #27ae60; }
+            table { width: 100%; border-collapse: collapse; font-size: 9px; margin-top: 15px; }
+            th, td { border: 1px solid #ddd; padding: 4px; text-align: left; }
+            th { background: #f0f3f6; text-transform: uppercase; font-size: 8px; font-weight: bold; }
             td.num { text-align: right; }
             .row-total { background: #eef9f0; font-weight: bold; }
-            .footer { margin-top: 18px; font-size: 9px; color: #666; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }
+            .positive-profit { color: #27ae60; font-weight: bold; }
+            .negative-profit { color: #e74c3c; font-weight: bold; }
+            .footer { margin-top: 18px; font-size: 8px; color: #666; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }
           </style>
         </head>
         <body>
           <div class="header">
-            <h2>REPORTE DE VENTAS DETALLADAS</h2>
+            <h2>REPORTE DE VENTAS DETALLADAS CON ANÁLISIS DE RENTABILIDAD</h2>
             <div>Rango: ${fechaInicio} a ${fechaFin}</div>
           </div>
     
           <div class="summary">
-            <div class="card"><div class="label">Total Facturado (líneas)</div><div class="value">$ ${fmtCOP(totalFacturado)}</div></div>
-            <div class="card"><div class="label">Total Facturado (sistema)</div><div class="value">$ ${fmtCOP(totalFacturadoSistema)}</div></div>
+            <div class="card"><div class="label">Total Facturado</div><div class="value">$ ${fmtCOP(totalFacturado)}</div></div>
+            <div class="card profit-card"><div class="label">Total Ganancia</div><div class="value">$ ${fmtCOP(totalGanancia)}</div></div>
+            <div class="card"><div class="label">Total Costo</div><div class="value">$ ${fmtCOP(totalCosto)}</div></div>
+            <div class="card profit-card"><div class="label">Margen Promedio</div><div class="value">${margenPromedioGlobal.toFixed(2)}%</div></div>
             <div class="card"><div class="label">Transacciones</div><div class="value">${cantidadTransacciones}</div></div>
             <div class="card"><div class="label">Productos Vendidos</div><div class="value">${cantidadProductosVendidos}</div></div>
             <div class="card"><div class="label">Fecha Generación</div><div class="value">${new Date().toLocaleString('es-CO')}</div></div>
@@ -758,26 +856,34 @@ export class SalesService {
               <tr>
                 <th>Fecha</th>
                 <th>Usuario</th>
-                <th>Transacción</th>
+                <th>Tipo</th>
                 <th>Producto</th>
                 <th>Marca</th>
-                <th>Categoría</th>
-                <th>Tono/Color</th>
+                <th>Cat.</th>
+                <th>Tono</th>
                 <th class="num">Cant</th>
+                <th class="num">Costo Unit.</th>
                 <th class="num">Precio Real</th>
-                <th class="num">Precio Base</th>
+                <th class="num">Precio Vend.</th>
+                <th class="num">Total Venta</th>
+                <th class="num">Ganancia Unit.</th>
+                <th class="num">Ganancia Total</th>
+                <th class="num">Margen %</th>
                 <th>Tipo Desc.</th>
                 <th class="num">% Desc.</th>
-                <!-- <th class="num">Factor Doc.</th> -->
-                <th class="num">Precio Vendido</th>
-                <th class="num">Total Línea</th>
-                <th>ID Transacción</th> 
+                <th>ID Trans.</th>
               </tr>
             </thead>
             <tbody>
               ${ventasDetalladas
                 .map(
-                  (v) => `
+                  (v) => {
+                    const gananciaPorUnidad = Number(v.gananciaPorUnidad) || 0;
+                    const gananciaTotal = Number(v.gananciaTotal) || 0;
+                    const margen = Number(v.margenGanancia) || 0;
+                    const profitClass = gananciaTotal >= 0 ? 'positive-profit' : 'negative-profit';
+                    
+                    return `
                 <tr>
                   <td>${fmtDateTime(v.fechaVenta)}</td>
                   <td>${v.usuario || ''}</td>
@@ -787,28 +893,36 @@ export class SalesService {
                   <td>${v.categoria || ''}</td>
                   <td>${v.tono || ''}</td>
                   <td class="num">${Number(v.cantidadVendida || 0)}</td>
+                  <td class="num">$ ${fmtCOP(v.costoProducto)}</td>
                   <td class="num">$ ${fmtCOP(v.precioReal)}</td>
-                  <td class="num">$ ${fmtCOP(v.precioConDescuentoIndividual)}</td>
-                  <td>${v.tipoDescuento || ''}</td>
-                  <td class="num">${(Number(v.porcentajeDescuento) || 0).toFixed(2)}%</td>
-                  <!-- <td class="num">${v.hayDescuentoCompra ? Number(v.factorDescuentoCompra || 1).toFixed(4) : '-'}</td> -->
                   <td class="num">$ ${fmtCOP(v.precioVendido)}</td>
                   <td class="num">$ ${fmtCOP(v.totalVenta)}</td>
+                  <td class="num ${profitClass}">$ ${fmtCOP(gananciaPorUnidad)}</td>
+                  <td class="num ${profitClass}">$ ${fmtCOP(gananciaTotal)}</td>
+                  <td class="num ${profitClass}">${margen.toFixed(2)}%</td>
+                  <td>${v.tipoDescuento || ''}</td>
+                  <td class="num">${(Number(v.porcentajeDescuento) || 0).toFixed(2)}%</td>
                   <td>${v.idTransaccion || ''}</td>
                 </tr>
-              `,
+              `;
+                  }
                 )
                 .join('')}
               <tr class="row-total">
-                <td colspan="13">TOTAL</td>
+                <td colspan="11">TOTALES</td>
                 <td class="num">$ ${fmtCOP(totalFacturado)}</td>
                 <td class="num"></td>
+                <td class="num positive-profit">$ ${fmtCOP(totalGanancia)}</td>
+                <td class="num positive-profit">${margenPromedioGlobal.toFixed(2)}%</td>
+                <td colspan="3"></td>
               </tr>
             </tbody>
           </table>
     
           <div class="footer">
-            Reporte generado automáticamente por el sistema
+            Reporte generado automáticamente por el sistema • 
+            Ganancia = Precio Vendido - Costo Unitario • 
+            Margen = (Ganancia / Costo) × 100
           </div>
         </body>
         </html>
@@ -818,7 +932,8 @@ export class SalesService {
 
     const pdf = await page.pdf({
       format: 'A4',
-      margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
+      landscape: true, // ✅ CAMBIAR A HORIZONTAL PARA MÁS COLUMNAS
+      margin: { top: '10mm', right: '8mm', bottom: '10mm', left: '8mm' },
       printBackground: true,
     });
 

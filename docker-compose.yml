@@ -1,11 +1,12 @@
 services:
   app:
     build: .
-    network_mode: "host"
+    ports:
+      - "5008:5008"
     environment:
       - NODE_ENV=production
       - MONGODB_URI=${MONGODB_URI}
-      - PORT=3000
+      - PORT=5008
       - TZ=America/Bogota
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
