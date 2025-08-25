@@ -10,6 +10,7 @@ import { Category } from './schemas/category.model';
 import { Product } from './schemas/product.model';
 import { Purchase } from './schemas/purchase.model';
 import { Payment } from './schemas/payment.model';
+import * as XLSX from 'xlsx';
 
 @Injectable()
 export class SalesService {
@@ -60,14 +61,16 @@ export class SalesService {
         .populate({
           path: 'products.id',
           model: 'Product',
-          select: '_id name price discount brand category ref tone color costProduct',
+          select:
+            '_id name price discount brand category ref tone color costProduct',
           populate: [
             { path: 'brand', model: 'Brand', select: '_id name' },
             { path: 'category', model: 'Category', select: '_id name' },
             {
               path: 'ref',
               model: 'Product',
-              select: '_id name price discount brand category tone color costProduct',
+              select:
+                '_id name price discount brand category tone color costProduct',
               populate: [
                 { path: 'brand', model: 'Brand', select: '_id name' },
                 { path: 'category', model: 'Category', select: '_id name' },
@@ -89,14 +92,16 @@ export class SalesService {
         .populate({
           path: 'store.id',
           model: 'Product',
-          select: '_id name price discount brand category ref tone color costProduct',
+          select:
+            '_id name price discount brand category ref tone color costProduct',
           populate: [
             { path: 'brand', model: 'Brand', select: '_id name' },
             { path: 'category', model: 'Category', select: '_id name' },
             {
               path: 'ref',
               model: 'Product',
-              select: '_id name price discount brand category tone color costProduct',
+              select:
+                '_id name price discount brand category tone color costProduct',
               populate: [
                 { path: 'brand', model: 'Brand', select: '_id name' },
                 { path: 'category', model: 'Category', select: '_id name' },
@@ -181,7 +186,7 @@ export class SalesService {
             const main = product.ref || product;
             const precioReal = Number(main.price) || 0;
             const cantidad = Number(prod.quantity) || 0;
-            
+
             // ✅ OBTENER COSTO DEL PRODUCTO
             const costoProducto = Number(main.costProduct) || 0;
 
@@ -237,12 +242,12 @@ export class SalesService {
             const totalProd = precioFinalVendido * cantidad;
             const totalProdRedondeado = Math.round(totalProd);
             const precioVendidoRedondeado = Math.round(precioFinalVendido);
-            
+
             // ✅ CALCULAR GANANCIA POR UNIDAD Y TOTAL
             const gananciaPorUnidad = precioVendidoRedondeado - costoProducto;
             const gananciaTotal = gananciaPorUnidad * cantidad;
-            const margenGanancia = costoProducto > 0 ? 
-              ((gananciaPorUnidad / costoProducto) * 100) : 0;
+            const margenGanancia =
+              costoProducto > 0 ? (gananciaPorUnidad / costoProducto) * 100 : 0;
 
             // Preparar línea (se insertará luego de reconciliar)
             const linea: any = {
@@ -312,19 +317,23 @@ export class SalesService {
             const nuevoTotal = Math.max(0, lineaAjuste.totalVenta + diferencia);
             const qty = Number(lineaAjuste.cantidadVendida) || 1;
             const nuevoPrecioVendido = Math.round(nuevoTotal / qty);
-            
+
             // ✅ RECALCULAR GANANCIA DESPUÉS DEL AJUSTE
-            const nuevaGananciaPorUnidad = nuevoPrecioVendido - lineaAjuste.costoProducto;
+            const nuevaGananciaPorUnidad =
+              nuevoPrecioVendido - lineaAjuste.costoProducto;
             const nuevaGananciaTotal = nuevaGananciaPorUnidad * qty;
-            const nuevoMargenGanancia = lineaAjuste.costoProducto > 0 ? 
-              ((nuevaGananciaPorUnidad / lineaAjuste.costoProducto) * 100) : 0;
-            
+            const nuevoMargenGanancia =
+              lineaAjuste.costoProducto > 0
+                ? (nuevaGananciaPorUnidad / lineaAjuste.costoProducto) * 100
+                : 0;
+
             lineaAjuste.totalVenta = nuevoTotal;
             lineaAjuste.precioVendido = nuevoPrecioVendido;
             lineaAjuste.gananciaPorUnidad = nuevaGananciaPorUnidad;
             lineaAjuste.gananciaTotal = nuevaGananciaTotal;
-            lineaAjuste.margenGanancia = Math.round(nuevoMargenGanancia * 100) / 100;
-            
+            lineaAjuste.margenGanancia =
+              Math.round(nuevoMargenGanancia * 100) / 100;
+
             lineasCompra[idx] = lineaAjuste;
           }
 
@@ -350,8 +359,8 @@ export class SalesService {
             // ✅ CALCULAR GANANCIA
             const gananciaPorUnidad = precioVendido - costoProducto;
             const gananciaTotal = gananciaPorUnidad * cantidad;
-            const margenGanancia = costoProducto > 0 ? 
-              ((gananciaPorUnidad / costoProducto) * 100) : 0;
+            const margenGanancia =
+              costoProducto > 0 ? (gananciaPorUnidad / costoProducto) * 100 : 0;
 
             // Preparar línea (se insertará luego de reconciliar)
             const totalProdRedondeado = Math.round(totalProd);
@@ -426,19 +435,23 @@ export class SalesService {
             );
             const qty2 = Number(lineaAjuste2.cantidadVendida) || 1;
             const nuevoPrecioVendido2 = Math.round(nuevoTotal2 / qty2);
-            
+
             // ✅ RECALCULAR GANANCIA DESPUÉS DEL AJUSTE
-            const nuevaGananciaPorUnidad2 = nuevoPrecioVendido2 - lineaAjuste2.costoProducto;
+            const nuevaGananciaPorUnidad2 =
+              nuevoPrecioVendido2 - lineaAjuste2.costoProducto;
             const nuevaGananciaTotal2 = nuevaGananciaPorUnidad2 * qty2;
-            const nuevoMargenGanancia2 = lineaAjuste2.costoProducto > 0 ? 
-              ((nuevaGananciaPorUnidad2 / lineaAjuste2.costoProducto) * 100) : 0;
-            
+            const nuevoMargenGanancia2 =
+              lineaAjuste2.costoProducto > 0
+                ? (nuevaGananciaPorUnidad2 / lineaAjuste2.costoProducto) * 100
+                : 0;
+
             lineaAjuste2.totalVenta = nuevoTotal2;
             lineaAjuste2.precioVendido = nuevoPrecioVendido2;
             lineaAjuste2.gananciaPorUnidad = nuevaGananciaPorUnidad2;
             lineaAjuste2.gananciaTotal = nuevaGananciaTotal2;
-            lineaAjuste2.margenGanancia = Math.round(nuevoMargenGanancia2 * 100) / 100;
-            
+            lineaAjuste2.margenGanancia =
+              Math.round(nuevoMargenGanancia2 * 100) / 100;
+
             lineasCompraSinTotal[idx2] = lineaAjuste2;
           }
           ventasDetalladas.push(...lineasCompraSinTotal);
@@ -517,12 +530,12 @@ export class SalesService {
           const totalProd = precioFinalVendido * cantidad;
           const totalProdRedondeado = Math.round(totalProd);
           const precioVendidoFinal = Math.round(precioFinalVendido);
-          
+
           // ✅ CALCULAR GANANCIA
           const gananciaPorUnidad = precioVendidoFinal - costoProducto;
           const gananciaTotal = gananciaPorUnidad * cantidad;
-          const margenGanancia = costoProducto > 0 ? 
-            ((gananciaPorUnidad / costoProducto) * 100) : 0;
+          const margenGanancia =
+            costoProducto > 0 ? (gananciaPorUnidad / costoProducto) * 100 : 0;
 
           // ✅ AGREGAR AL REPORTE DETALLADO (con auditoría opcional)
           const lineaPago: any = {
@@ -593,19 +606,22 @@ export class SalesService {
           const nuevoTotal = Math.max(0, linea.totalVenta + diferenciaPago);
           const qty = Number(linea.cantidadVendida) || 1;
           const nuevoPrecioVendido = Math.round(nuevoTotal / qty);
-          
+
           // ✅ RECALCULAR GANANCIA DESPUÉS DEL AJUSTE
-          const nuevaGananciaPorUnidad = nuevoPrecioVendido - linea.costoProducto;
+          const nuevaGananciaPorUnidad =
+            nuevoPrecioVendido - linea.costoProducto;
           const nuevaGananciaTotal = nuevaGananciaPorUnidad * qty;
-          const nuevoMargenGanancia = linea.costoProducto > 0 ? 
-            ((nuevaGananciaPorUnidad / linea.costoProducto) * 100) : 0;
-          
+          const nuevoMargenGanancia =
+            linea.costoProducto > 0
+              ? (nuevaGananciaPorUnidad / linea.costoProducto) * 100
+              : 0;
+
           linea.totalVenta = nuevoTotal;
           linea.precioVendido = nuevoPrecioVendido;
           linea.gananciaPorUnidad = nuevaGananciaPorUnidad;
           linea.gananciaTotal = nuevaGananciaTotal;
           linea.margenGanancia = Math.round(nuevoMargenGanancia * 100) / 100;
-          
+
           lineasPago[idx] = linea;
         }
         ventasDetalladas.push(...lineasPago);
@@ -613,7 +629,8 @@ export class SalesService {
 
       // 5. Ordenar por fecha más reciente y calcular totales alineados con las agregaciones de MongoDB
       const ventasOrdenadas = ventasDetalladas.sort(
-        (a, b) => new Date(b.fechaVenta).getTime() - new Date(a.fechaVenta).getTime(),
+        (a, b) =>
+          new Date(b.fechaVenta).getTime() - new Date(a.fechaVenta).getTime(),
       );
 
       // Total de compras: usar purchase.total si es > 0; de lo contrario, sumar price*quantity de cada ítem sin descuentos
@@ -653,11 +670,11 @@ export class SalesService {
       const totalCosto = ventasDetalladas.reduce((sum, venta) => {
         const costo = Number(venta.costoProducto) || 0;
         const cantidad = Number(venta.cantidadVendida) || 0;
-        return sum + (costo * cantidad);
+        return sum + costo * cantidad;
       }, 0);
 
-      const margenPromedioGlobal = totalCosto > 0 ? 
-        ((totalGanancia / totalCosto) * 100) : 0;
+      const margenPromedioGlobal =
+        totalCosto > 0 ? (totalGanancia / totalCosto) * 100 : 0;
 
       // AUDITORÍA: comparar suma por transacción vs objetivo
       try {
@@ -876,14 +893,14 @@ export class SalesService {
             </thead>
             <tbody>
               ${ventasDetalladas
-                .map(
-                  (v) => {
-                    const gananciaPorUnidad = Number(v.gananciaPorUnidad) || 0;
-                    const gananciaTotal = Number(v.gananciaTotal) || 0;
-                    const margen = Number(v.margenGanancia) || 0;
-                    const profitClass = gananciaTotal >= 0 ? 'positive-profit' : 'negative-profit';
-                    
-                    return `
+                .map((v) => {
+                  const gananciaPorUnidad = Number(v.gananciaPorUnidad) || 0;
+                  const gananciaTotal = Number(v.gananciaTotal) || 0;
+                  const margen = Number(v.margenGanancia) || 0;
+                  const profitClass =
+                    gananciaTotal >= 0 ? 'positive-profit' : 'negative-profit';
+
+                  return `
                 <tr>
                   <td>${fmtDateTime(v.fechaVenta)}</td>
                   <td>${v.usuario || ''}</td>
@@ -905,8 +922,7 @@ export class SalesService {
                   <td>${v.idTransaccion || ''}</td>
                 </tr>
               `;
-                  }
-                )
+                })
                 .join('')}
               <tr class="row-total">
                 <td colspan="11">TOTALES</td>
@@ -939,5 +955,681 @@ export class SalesService {
 
     await browser.close();
     return Buffer.from(pdf);
+  }
+
+  async salesReportExcel(
+    res: Response,
+    req: Request,
+    dateInit: string,
+    dateEnd: string,
+  ) {
+    try {
+      if (!dateInit || !dateEnd) {
+        return res.status(400).json({
+          success: false,
+          info: 'Debes enviar dateInit y dateEnd en el query',
+        });
+      }
+
+      // 1. Ajustar fechas a hora Colombia y convertir a UTC
+      const start = moment
+        .tz(dateInit, 'YYYY-MM-DD', 'America/Bogota')
+        .startOf('day')
+        .utc()
+        .toDate();
+      const end = moment
+        .tz(dateEnd, 'YYYY-MM-DD', 'America/Bogota')
+        .endOf('day')
+        .utc()
+        .toDate();
+
+      // 2. Obtener compras con filtros (misma lógica que el PDF)
+      const purchases = await this.purchaseModel
+        .find({
+          status: { $in: ['Aprobada', 'Despachada', 'Entregada'] },
+          createdAt: { $gte: start, $lte: end },
+          products: { $exists: true, $ne: null },
+          $expr: { $gt: [{ $size: '$products' }, 0] },
+          paymentMethod: { $nin: ['referred', '', null] },
+        })
+        .populate({
+          path: 'products.id',
+          model: 'Product',
+          select:
+            '_id name price discount brand category ref tone color costProduct',
+          populate: [
+            { path: 'brand', model: 'Brand', select: '_id name' },
+            { path: 'category', model: 'Category', select: '_id name' },
+            {
+              path: 'ref',
+              model: 'Product',
+              select:
+                '_id name price discount brand category tone color costProduct',
+              populate: [
+                { path: 'brand', model: 'Brand', select: '_id name' },
+                { path: 'category', model: 'Category', select: '_id name' },
+              ],
+            },
+          ],
+        })
+        .lean();
+
+      // 2.1 Obtener pagos manuales con filtros
+      const payments = await this.paymentModel
+        .find({
+          status: 'approved',
+          createdAt: { $gte: start, $lte: end },
+          isStore: true,
+          store: { $exists: true, $ne: null },
+          $expr: { $gt: [{ $size: '$store' }, 0] },
+        })
+        .populate({
+          path: 'store.id',
+          model: 'Product',
+          select:
+            '_id name price discount brand category ref tone color costProduct',
+          populate: [
+            { path: 'brand', model: 'Brand', select: '_id name' },
+            { path: 'category', model: 'Category', select: '_id name' },
+            {
+              path: 'ref',
+              model: 'Product',
+              select:
+                '_id name price discount brand category tone color costProduct',
+              populate: [
+                { path: 'brand', model: 'Brand', select: '_id name' },
+                { path: 'category', model: 'Category', select: '_id name' },
+              ],
+            },
+          ],
+        })
+        .populate({
+          path: 'lastAdminEdit',
+          model: 'User',
+          select: '_id fullName email',
+        })
+        .lean();
+
+      // 3. Array para el reporte detallado (misma lógica que el PDF)
+      const ventasDetalladas: any[] = [];
+
+      // 4. Procesar cada compra (reutilizar la lógica completa del método PDF)
+      purchases.forEach((purchase: any) => {
+        let totalCompra = 0;
+
+        if (purchase.total && purchase.total > 0) {
+          totalCompra = Number(purchase.total);
+
+          // Calcular suma con precios de productos (puede tener descuentos individuales)
+          const sumaConDescuentosIndividuales = purchase.products.reduce(
+            (sum, prod) => {
+              const product = prod.id;
+              if (!product) return sum;
+              const main = product.ref || product;
+              const precioReal = Number(main.price) || 0;
+              const descuentoProductoRaw =
+                (product?.ref?.discount != null
+                  ? Number(product.ref.discount)
+                  : product?.discount != null
+                    ? Number(product.discount)
+                    : 0) || 0;
+              const factorDescuentoProducto =
+                descuentoProductoRaw > 0
+                  ? descuentoProductoRaw <= 1
+                    ? descuentoProductoRaw
+                    : descuentoProductoRaw <= 100
+                      ? descuentoProductoRaw / 100
+                      : 1
+                  : 0;
+              const precioDerivadoPorDescuento = Math.round(
+                precioReal * (1 - factorDescuentoProducto),
+              );
+              const priceLinea =
+                Number(prod.price) > 0 ? Number(prod.price) : null;
+              const precioProducto =
+                factorDescuentoProducto > 0
+                  ? priceLinea === null
+                    ? precioDerivadoPorDescuento
+                    : Math.min(priceLinea, precioDerivadoPorDescuento)
+                  : priceLinea === null
+                    ? precioReal
+                    : priceLinea;
+              const cantidad = Number(prod.quantity) || 0;
+              return sum + precioProducto * cantidad;
+            },
+            0,
+          );
+
+          // Determinar si hay descuento a nivel de compra
+          const hayDescuentoCompra =
+            totalCompra > 0 &&
+            sumaConDescuentosIndividuales > 0 &&
+            totalCompra < sumaConDescuentosIndividuales;
+          const factorDescuentoCompra = hayDescuentoCompra
+            ? totalCompra / sumaConDescuentosIndividuales
+            : 1;
+
+          // Procesar productos para el detalle aplicando factor si corresponde
+          const lineasCompra: any[] = [];
+          let sumaLineasRedondeadas = 0;
+          purchase.products.forEach((prod) => {
+            const product = prod.id;
+            if (!product) return;
+            const main = product.ref || product;
+            const precioReal = Number(main.price) || 0;
+            const cantidad = Number(prod.quantity) || 0;
+            const costoProducto = Number(main.costProduct) || 0;
+
+            // Precio con descuento individual
+            const descuentoProductoRaw = Number(main.discount) || 0;
+            const factorDescuentoProducto =
+              descuentoProductoRaw > 0
+                ? descuentoProductoRaw <= 1
+                  ? descuentoProductoRaw
+                  : descuentoProductoRaw <= 100
+                    ? descuentoProductoRaw / 100
+                    : 1
+                : 0;
+            const precioDerivadoPorDescuento = Math.round(
+              precioReal * (1 - factorDescuentoProducto),
+            );
+            const priceLinea =
+              Number(prod.price) > 0 ? Number(prod.price) : null;
+            let precioConDescuentoIndividual =
+              priceLinea === null ? precioDerivadoPorDescuento : priceLinea;
+            if (factorDescuentoProducto > 0) {
+              const preferido = precioDerivadoPorDescuento;
+              if (priceLinea === null || preferido < priceLinea) {
+                precioConDescuentoIndividual = preferido;
+              }
+            }
+
+            // Precio final considerando ambos tipos de descuento
+            let precioFinalVendido = precioConDescuentoIndividual;
+            let tipoDescuento = 'Sin descuento';
+            let porcentajeDescuento = 0;
+            const hayDescuentoIndividual =
+              precioConDescuentoIndividual < precioReal;
+
+            if (hayDescuentoCompra) {
+              precioFinalVendido =
+                precioConDescuentoIndividual * factorDescuentoCompra;
+              tipoDescuento = hayDescuentoIndividual
+                ? 'Ambos'
+                : 'Descuento en compra';
+              porcentajeDescuento = (1 - precioFinalVendido / precioReal) * 100;
+            } else if (hayDescuentoIndividual) {
+              tipoDescuento = 'Descuento individual';
+              porcentajeDescuento =
+                ((precioReal - precioConDescuentoIndividual) / precioReal) *
+                100;
+            }
+
+            const totalProd = precioFinalVendido * cantidad;
+            const totalProdRedondeado = Math.round(totalProd);
+            const precioVendidoRedondeado = Math.round(precioFinalVendido);
+
+            // Calcular ganancia
+            const gananciaPorUnidad = precioVendidoRedondeado - costoProducto;
+            const gananciaTotal = gananciaPorUnidad * cantidad;
+            const margenGanancia =
+              costoProducto > 0 ? (gananciaPorUnidad / costoProducto) * 100 : 0;
+
+            const linea: any = {
+              nombreProducto: main.name?.trim() || 'Producto sin nombre',
+              marca: main.brand?.name?.trim() || 'Sin marca',
+              cantidadVendida: cantidad,
+              precioReal,
+              precioVendido: precioVendidoRedondeado,
+              totalVenta: totalProdRedondeado,
+              costoProducto,
+              gananciaPorUnidad,
+              gananciaTotal,
+              margenGanancia: Math.round(margenGanancia * 100) / 100,
+              tono: (
+                product.color?.name ||
+                product.tone?.name ||
+                'Sin tono'
+              ).trim(),
+              categoria: main.category?.name?.trim() || 'Sin categoría',
+              tipoTransaccion: 'Compra',
+              fechaVenta: purchase.createdAt,
+              idTransaccion: purchase._id,
+              usuario: purchase.user?.fullName || '',
+              tipoDescuento,
+              porcentajeDescuento: Math.round(porcentajeDescuento * 100) / 100,
+            };
+
+            lineasCompra.push(linea);
+            sumaLineasRedondeadas += totalProdRedondeado;
+          });
+
+          // Reconciliar para que la suma de líneas coincida con purchase.total
+          const objetivo = totalCompra;
+          const diferencia =
+            Math.round(objetivo) - Math.round(sumaLineasRedondeadas);
+          if (lineasCompra.length > 0 && diferencia !== 0) {
+            const idx = lineasCompra.length - 1;
+            const lineaAjuste = lineasCompra[idx];
+            const nuevoTotal = Math.max(0, lineaAjuste.totalVenta + diferencia);
+            const qty = Number(lineaAjuste.cantidadVendida) || 1;
+            const nuevoPrecioVendido = Math.round(nuevoTotal / qty);
+
+            // Recalcular ganancia después del ajuste
+            const nuevaGananciaPorUnidad =
+              nuevoPrecioVendido - lineaAjuste.costoProducto;
+            const nuevaGananciaTotal = nuevaGananciaPorUnidad * qty;
+            const nuevoMargenGanancia =
+              lineaAjuste.costoProducto > 0
+                ? (nuevaGananciaPorUnidad / lineaAjuste.costoProducto) * 100
+                : 0;
+
+            lineaAjuste.totalVenta = nuevoTotal;
+            lineaAjuste.precioVendido = nuevoPrecioVendido;
+            lineaAjuste.gananciaPorUnidad = nuevaGananciaPorUnidad;
+            lineaAjuste.gananciaTotal = nuevaGananciaTotal;
+            lineaAjuste.margenGanancia =
+              Math.round(nuevoMargenGanancia * 100) / 100;
+
+            lineasCompra[idx] = lineaAjuste;
+          }
+
+          ventasDetalladas.push(...lineasCompra);
+        } else {
+          // Calcular por productos cuando no hay purchase.total válido
+          const lineasCompraSinTotal: any[] = [];
+          purchase.products.forEach((prod: any) => {
+            const product = prod.id;
+            if (!product) return;
+            const main = product.ref || product;
+            const precioReal = Number(main.price) || 0;
+            const costoProducto = Number(main.costProduct) || 0;
+            const priceLinea =
+              Number(prod.price) > 0 ? Number(prod.price) : null;
+            const precioVendido = priceLinea === null ? precioReal : priceLinea;
+            const cantidad = Number(prod.quantity) || 0;
+            const totalProd = precioVendido * cantidad;
+            totalCompra += totalProd;
+
+            // Calcular ganancia
+            const gananciaPorUnidad = precioVendido - costoProducto;
+            const gananciaTotal = gananciaPorUnidad * cantidad;
+            const margenGanancia =
+              costoProducto > 0 ? (gananciaPorUnidad / costoProducto) * 100 : 0;
+
+            const totalProdRedondeado = Math.round(totalProd);
+            const precioVendidoRedondeado = Math.round(precioVendido);
+            const linea2: any = {
+              nombreProducto: main.name?.trim() || 'Producto sin nombre',
+              marca: main.brand?.name?.trim() || 'Sin marca',
+              cantidadVendida: cantidad,
+              precioReal,
+              precioVendido: precioVendidoRedondeado,
+              totalVenta: totalProdRedondeado,
+              costoProducto,
+              gananciaPorUnidad: Math.round(gananciaPorUnidad),
+              gananciaTotal: Math.round(gananciaTotal),
+              margenGanancia: Math.round(margenGanancia * 100) / 100,
+              tono: (
+                product.color?.name ||
+                product.tone?.name ||
+                'Sin tono'
+              ).trim(),
+              categoria: main.category?.name?.trim() || 'Sin categoría',
+              tipoTransaccion: 'Compra',
+              fechaVenta: purchase.createdAt,
+              idTransaccion: purchase._id,
+              usuario: purchase.user?.fullName || '',
+              tipoDescuento:
+                priceLinea !== null && priceLinea < precioReal
+                  ? 'Descuento individual'
+                  : 'Sin descuento',
+              porcentajeDescuento:
+                priceLinea !== null && priceLinea < precioReal
+                  ? Math.round(
+                      ((precioReal - priceLinea) / precioReal) * 100 * 100,
+                    ) / 100
+                  : 0,
+            };
+            lineasCompraSinTotal.push(linea2);
+          });
+
+          // Reconciliar suma de líneas
+          const objetivo2 = Math.round(totalCompra);
+          const sumaRedondeada2 = lineasCompraSinTotal.reduce(
+            (s, l) => s + (Number(l.totalVenta) || 0),
+            0,
+          );
+          if (
+            lineasCompraSinTotal.length > 0 &&
+            sumaRedondeada2 !== objetivo2
+          ) {
+            const idx2 = lineasCompraSinTotal.length - 1;
+            const lineaAjuste2 = lineasCompraSinTotal[idx2];
+            const nuevoTotal2 = Math.max(
+              0,
+              lineaAjuste2.totalVenta + (objetivo2 - sumaRedondeada2),
+            );
+            const qty2 = Number(lineaAjuste2.cantidadVendida) || 1;
+            const nuevoPrecioVendido2 = Math.round(nuevoTotal2 / qty2);
+
+            // Recalcular ganancia después del ajuste
+            const nuevaGananciaPorUnidad2 =
+              nuevoPrecioVendido2 - lineaAjuste2.costoProducto;
+            const nuevaGananciaTotal2 = nuevaGananciaPorUnidad2 * qty2;
+            const nuevoMargenGanancia2 =
+              lineaAjuste2.costoProducto > 0
+                ? (nuevaGananciaPorUnidad2 / lineaAjuste2.costoProducto) * 100
+                : 0;
+
+            lineaAjuste2.totalVenta = nuevoTotal2;
+            lineaAjuste2.precioVendido = nuevoPrecioVendido2;
+            lineaAjuste2.gananciaPorUnidad = nuevaGananciaPorUnidad2;
+            lineaAjuste2.gananciaTotal = nuevaGananciaTotal2;
+            lineaAjuste2.margenGanancia =
+              Math.round(nuevoMargenGanancia2 * 100) / 100;
+
+            lineasCompraSinTotal[idx2] = lineaAjuste2;
+          }
+          ventasDetalladas.push(...lineasCompraSinTotal);
+        }
+      });
+
+      // 4.1 Procesar cada pago manual (misma lógica que el PDF)
+      payments.forEach((payment: any) => {
+        const totalPayment = Number(payment.total) || 0;
+
+        const sumItemsLinea = payment.store.reduce((s, p) => {
+          const price = Number(p?.price) > 0 ? Number(p.price) : 0;
+          const qty = Number(p?.quantity) || 0;
+          return s + price * qty;
+        }, 0);
+
+        const hayDescuentoPago =
+          totalPayment > 0 && totalPayment < sumItemsLinea;
+        const factorDescuentoPago = hayDescuentoPago
+          ? totalPayment / sumItemsLinea
+          : 1;
+
+        const lineasPago: any[] = [];
+        let sumaLineasPago = 0;
+        payment.store.forEach((prod: any) => {
+          const product = prod.id;
+          if (!product) return;
+          const main = product.ref || product;
+          const precioReal = Number(main.price) || 0;
+          const costoProducto = Number(main.costProduct) || 0;
+          const cantidad = Number(prod.quantity) || 0;
+
+          const priceLinea = Number(prod.price) > 0 ? Number(prod.price) : null;
+          let precioConDescuentoIndividual = precioReal;
+
+          if (
+            priceLinea !== null &&
+            priceLinea > 0 &&
+            priceLinea < precioReal
+          ) {
+            precioConDescuentoIndividual = priceLinea;
+          }
+
+          let precioFinalVendido = precioConDescuentoIndividual;
+          let tipoDescuento = 'Sin descuento';
+          let porcentajeDescuento = 0;
+          const hayDescuentoIndividual =
+            precioConDescuentoIndividual < precioReal;
+
+          if (hayDescuentoPago) {
+            precioFinalVendido =
+              precioConDescuentoIndividual * factorDescuentoPago;
+            tipoDescuento = hayDescuentoIndividual
+              ? 'Ambos'
+              : 'Descuento en pago';
+            porcentajeDescuento =
+              Math.round((1 - precioFinalVendido / precioReal) * 100 * 100) /
+              100;
+          } else if (hayDescuentoIndividual) {
+            tipoDescuento = 'Descuento individual';
+            porcentajeDescuento =
+              Math.round(
+                (1 - precioConDescuentoIndividual / precioReal) * 100 * 100,
+              ) / 100;
+          }
+
+          const totalProd = precioFinalVendido * cantidad;
+          const totalProdRedondeado = Math.round(totalProd);
+          const precioVendidoFinal = Math.round(precioFinalVendido);
+
+          // Calcular ganancia
+          const gananciaPorUnidad = precioVendidoFinal - costoProducto;
+          const gananciaTotal = gananciaPorUnidad * cantidad;
+          const margenGanancia =
+            costoProducto > 0 ? (gananciaPorUnidad / costoProducto) * 100 : 0;
+
+          const lineaPago: any = {
+            nombreProducto: main.name?.trim() || 'Producto sin nombre',
+            marca: main.brand?.name?.trim() || 'Sin marca',
+            cantidadVendida: cantidad,
+            precioReal,
+            precioVendido: precioVendidoFinal,
+            totalVenta: totalProdRedondeado,
+            costoProducto,
+            gananciaPorUnidad,
+            gananciaTotal,
+            margenGanancia: Math.round(margenGanancia * 100) / 100,
+            tono: (
+              product.color?.name ||
+              product.tone?.name ||
+              'Sin tono'
+            ).trim(),
+            categoria: main.category?.name?.trim() || 'Sin categoría',
+            tipoTransaccion: 'Pago Manual',
+            fechaVenta: payment.createdAt,
+            idTransaccion: payment._id,
+            usuario: payment.lastAdminEdit?.fullName || '',
+            tipoDescuento,
+            porcentajeDescuento: Math.round(porcentajeDescuento * 100) / 100,
+          };
+
+          lineasPago.push(lineaPago);
+          sumaLineasPago += totalProdRedondeado;
+        });
+
+        // Reconciliar líneas de pago
+        const objetivoPago = Math.round(
+          hayDescuentoPago ? totalPayment : sumItemsLinea,
+        );
+        const diferenciaPago = objetivoPago - Math.round(sumaLineasPago);
+        if (lineasPago.length > 0 && diferenciaPago !== 0) {
+          const idx = lineasPago.length - 1;
+          const linea = lineasPago[idx];
+          const nuevoTotal = Math.max(0, linea.totalVenta + diferenciaPago);
+          const qty = Number(linea.cantidadVendida) || 1;
+          const nuevoPrecioVendido = Math.round(nuevoTotal / qty);
+
+          // Recalcular ganancia después del ajuste
+          const nuevaGananciaPorUnidad =
+            nuevoPrecioVendido - linea.costoProducto;
+          const nuevaGananciaTotal = nuevaGananciaPorUnidad * qty;
+          const nuevoMargenGanancia =
+            linea.costoProducto > 0
+              ? (nuevaGananciaPorUnidad / linea.costoProducto) * 100
+              : 0;
+
+          linea.totalVenta = nuevoTotal;
+          linea.precioVendido = nuevoPrecioVendido;
+          linea.gananciaPorUnidad = nuevaGananciaPorUnidad;
+          linea.gananciaTotal = nuevaGananciaTotal;
+          linea.margenGanancia = Math.round(nuevoMargenGanancia * 100) / 100;
+
+          lineasPago[idx] = linea;
+        }
+        ventasDetalladas.push(...lineasPago);
+      });
+
+      // 5. Ordenar por fecha más reciente y calcular totales
+      const ventasOrdenadas = ventasDetalladas.sort(
+        (a, b) =>
+          new Date(b.fechaVenta).getTime() - new Date(a.fechaVenta).getTime(),
+      );
+
+      // Calcular totales
+      const totalComprasAgregado = purchases.reduce((sum, purchase: any) => {
+        if (purchase?.total && Number(purchase.total) > 0) {
+          return sum + Number(purchase.total);
+        }
+        const subtotal = (purchase?.products || []).reduce((s, p) => {
+          const price = Number(p?.price) > 0 ? Number(p.price) : 0;
+          const qty = Number(p?.quantity) || 0;
+          return s + price * qty;
+        }, 0);
+        return sum + subtotal;
+      }, 0);
+
+      const totalPagosAgregado = payments.reduce((sum, payment) => {
+        const sumItems = (payment?.store || []).reduce((s, p) => {
+          const price = Number(p?.price) > 0 ? Number(p.price) : 0;
+          const qty = Number(p?.quantity) || 0;
+          return s + price * qty;
+        }, 0);
+        const totalPay = Number(payment?.total) || 0;
+        const efectivo =
+          totalPay > 0 && totalPay < sumItems ? totalPay : sumItems;
+        return sum + efectivo;
+      }, 0);
+
+      const totalFacturadoDetallado = totalComprasAgregado + totalPagosAgregado;
+
+      // Calcular totales de ganancia
+      const totalGanancia = ventasDetalladas.reduce((sum, venta) => {
+        return sum + (Number(venta.gananciaTotal) || 0);
+      }, 0);
+
+      const totalCosto = ventasDetalladas.reduce((sum, venta) => {
+        const costo = Number(venta.costoProducto) || 0;
+        const cantidad = Number(venta.cantidadVendida) || 0;
+        return sum + costo * cantidad;
+      }, 0);
+
+      const margenPromedioGlobal =
+        totalCosto > 0 ? (totalGanancia / totalCosto) * 100 : 0;
+
+      // 6. Crear el archivo Excel
+      const excelData = this.generateExcelData(ventasOrdenadas, {
+        totalFacturado: Math.round(totalFacturadoDetallado),
+        totalGanancia: Math.round(totalGanancia),
+        totalCosto: Math.round(totalCosto),
+        margenPromedioGlobal: Math.round(margenPromedioGlobal * 100) / 100,
+        cantidadTransacciones: purchases.length + payments.length,
+        cantidadProductosVendidos: ventasDetalladas.length,
+        fechaInicio: dateInit,
+        fechaFin: dateEnd,
+      });
+
+      // 7. Generar archivo Excel
+      const workbook = XLSX.utils.book_new();
+
+      // Hoja principal con los datos detallados
+      const worksheet = XLSX.utils.json_to_sheet(excelData.detailData);
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventas Detalladas');
+
+      // Hoja de resumen
+      const summaryWorksheet = XLSX.utils.json_to_sheet(excelData.summaryData);
+      XLSX.utils.book_append_sheet(workbook, summaryWorksheet, 'Resumen');
+
+      // Convertir a buffer
+      const excelBuffer = XLSX.write(workbook, {
+        type: 'buffer',
+        bookType: 'xlsx',
+      });
+
+      // 8. Enviar respuesta
+      const fileName = `reporte-ventas-detalladas-${dateInit}-${dateEnd}.xlsx`;
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${fileName}"`,
+      );
+      res.setHeader('Content-Length', excelBuffer.length);
+      res.end(excelBuffer);
+    } catch (error) {
+      console.error('Error generando reporte Excel:', error);
+      return res.status(500).json({
+        success: false,
+        info: 'Error interno del servidor al generar el reporte Excel',
+      });
+    }
+  }
+
+  private generateExcelData(ventasDetalladas: any[], totals: any) {
+    // Formatear fecha para Excel
+    const formatDate = (date: any) => {
+      try {
+        return new Date(date).toLocaleDateString('es-CO', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      } catch {
+        return '';
+      }
+    };
+
+    // Datos detallados
+    const detailData = ventasDetalladas.map((venta) => ({
+      Fecha: formatDate(venta.fechaVenta),
+      Usuario: venta.usuario || '',
+      'Tipo Transacción': venta.tipoTransaccion || '',
+      Producto: venta.nombreProducto || '',
+      Marca: venta.marca || '',
+      Categoría: venta.categoria || '',
+      Tono: venta.tono || '',
+      Cantidad: Number(venta.cantidadVendida || 0),
+      'Costo Unitario': Number(venta.costoProducto || 0),
+      'Precio Real': Number(venta.precioReal || 0),
+      'Precio Vendido': Number(venta.precioVendido || 0),
+      'Total Venta': Number(venta.totalVenta || 0),
+      'Ganancia Unitaria': Number(venta.gananciaPorUnidad || 0),
+      'Ganancia Total': Number(venta.gananciaTotal || 0),
+      'Margen %': Number(venta.margenGanancia || 0),
+      'Tipo Descuento': venta.tipoDescuento || '',
+      '% Descuento': Number(venta.porcentajeDescuento || 0),
+      'ID Transacción': String(venta.idTransaccion || ''),
+    }));
+
+    // Datos de resumen
+    const summaryData = [
+      { Concepto: 'Total Facturado', Valor: totals.totalFacturado },
+      { Concepto: 'Total Ganancia', Valor: totals.totalGanancia },
+      { Concepto: 'Total Costo', Valor: totals.totalCosto },
+      {
+        Concepto: 'Margen Promedio Global (%)',
+        Valor: totals.margenPromedioGlobal,
+      },
+      {
+        Concepto: 'Cantidad de Transacciones',
+        Valor: totals.cantidadTransacciones,
+      },
+      {
+        Concepto: 'Cantidad de Productos Vendidos',
+        Valor: totals.cantidadProductosVendidos,
+      },
+      { Concepto: 'Fecha Inicio', Valor: totals.fechaInicio },
+      { Concepto: 'Fecha Fin', Valor: totals.fechaFin },
+      {
+        Concepto: 'Fecha de Generación',
+        Valor: new Date().toLocaleString('es-CO'),
+      },
+    ];
+
+    return {
+      detailData,
+      summaryData,
+    };
   }
 }

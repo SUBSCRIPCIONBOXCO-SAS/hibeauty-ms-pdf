@@ -10,4 +10,9 @@ export class SalesController {
   async salesReport(@Res() res: express.Response, @Req() req: express.Request, @Query('dateInit') dateInit: string, @Query('dateEnd') dateEnd: string) {
     return this.salesService.salesReport(res, req, dateInit, dateEnd);
   }
+
+  @Get('excel')
+  async salesReportExcel(@Res() res: express.Response, @Req() req: express.Request, @Query('dateInit') dateInit: string, @Query('dateEnd') dateEnd: string) {
+    return this.salesService.salesReportExcel(res, req, dateInit, dateEnd);
+  }
 }
